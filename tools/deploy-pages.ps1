@@ -59,14 +59,19 @@ if (-not $SkipPush) {
     $remote = "https://x-access-token:$token@github.com/$Owner/$Repo.git"
     $clean = "https://github.com/$Owner/$Repo.git"
     $env:GIT_TERMINAL_PROMPT = "0"
+    $savedEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     try {
-        git remote remove origin 2>$null
+        $remotes = @(git remote)
+        if ($remotes -contains "origin") { git remote remove origin | Out-Null }
         git remote add origin $remote
+        if ($LASTEXITCODE -ne 0) { throw "git remote add failed" }
         git push -u origin $Branch --force
         if ($LASTEXITCODE -ne 0) { throw "git push exited with code $LASTEXITCODE" }
         Write-Host "Branch $Branch pushed."
     } finally {
-        git remote set-url origin $clean 2>$null
+        git remote set-url origin $clean | Out-Null
+        $ErrorActionPreference = $savedEap
     }
 }
 
