@@ -1,0 +1,11 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python helpers
+__pycache__/
+*.pyc
+
+# Local browser profiles / temp
+.edge-profile/
