@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
-    Публикует статический сайт в GitHub Pages.
+    Publish this static site to GitHub Pages.
 
 .DESCRIPTION
-    Требует переменную окружения GH_TOKEN (fine-grained или classic PAT).
-    Скрипт проверяет/создаёт репозиторий, пушит ветку и включает Pages,
-    после чего возвращает адрес сайта. Токен не сохраняется в конфиг git.
+    Requires the GH_TOKEN environment variable (fine-grained or classic PAT).
+    The script checks the repository, pushes the branch, enables Pages and
+    prints the site URL. The token is never persisted in git config.
 
 .EXAMPLE
     $env:GH_TOKEN = "github_pat_..."; .\tools\deploy-pages.ps1 -Owner Boris-ZH -Repo spravochnik-bolezney
@@ -20,7 +20,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $token = $env:GH_TOKEN
-if (-not $token) { throw "Переменная окружения GH_TOKEN не задана." }
+if (-not $token) { throw "GH_TOKEN environment variable is not set." }
 
 $api = "https://api.github.com"
 $headers = @{
@@ -40,32 +40,31 @@ function Invoke-GH {
     Invoke-RestMethod @params
 }
 
-# ---- 1. Репозиторий -------------------------------------------------------
-$repoExists = $false
+# ---- 1. Repository --------------------------------------------------------
 try {
     $r = Invoke-GH -Method Get -Uri "$api/repos/$Owner/$Repo"
-    $repoExists = $true
-    Write-Host "Репозиторий найден: $($r.full_name) (private=$($r.private))"
+    Write-Host "Repository found: $($r.full_name) (private=$($r.private))"
 } catch {
-    Write-Host "Репозиторий не найден — создаю..."
+    Write-Host "Repository not found - creating..."
     $r = Invoke-GH -Method Post -Uri "$api/user/repos" -Body @{
         name      = $Repo
         private   = $false
         auto_init = $false
     }
-    Write-Host "Создан: $($r.full_name)"
+    Write-Host "Created: $($r.full_name)"
 }
 
 # ---- 2. Push --------------------------------------------------------------
 if (-not $SkipPush) {
     $remote = "https://x-access-token:$token@github.com/$Owner/$Repo.git"
     $clean = "https://github.com/$Owner/$Repo.git"
+    $env:GIT_TERMINAL_PROMPT = "0"
     try {
         git remote remove origin 2>$null
         git remote add origin $remote
         git push -u origin $Branch --force
-        if ($LASTEXITCODE -ne 0) { throw "git push завершился с кодом $LASTEXITCODE" }
-        Write-Host "Ветка $Branch отправлена."
+        if ($LASTEXITCODE -ne 0) { throw "git push exited with code $LASTEXITCODE" }
+        Write-Host "Branch $Branch pushed."
     } finally {
         git remote set-url origin $clean 2>$null
     }
@@ -78,19 +77,19 @@ try {
         build_type = "legacy"
         source     = @{ branch = $Branch; path = "/" }
     }
-    Write-Host "Pages включён: $($p.html_url)"
+    Write-Host "Pages enabled: $($p.html_url)"
     $pagesUrl = $p.html_url
 } catch {
-    Write-Host "Не удалось включить Pages через API: $($_.Exception.Message)"
+    Write-Host "Pages API failed: $($_.Exception.Message)"
     try {
         $p = Invoke-GH -Method Get -Uri "$api/repos/$Owner/$Repo/pages"
-        Write-Host "Pages уже настроен: $($p.html_url)"
+        Write-Host "Pages already configured: $($p.html_url)"
         $pagesUrl = $p.html_url
     } catch {
-        Write-Host "Включите Pages вручную: Settings → Pages → Deploy from a branch → $Branch / (root)."
+        Write-Host "Enable Pages manually: Settings -> Pages -> Deploy from a branch -> $Branch / (root)."
     }
 }
 
 Write-Host ""
-Write-Host "Сайт: $pagesUrl"
-Write-Host "Первый билд обычно занимает 1–2 минуты."
+Write-Host "Site: $pagesUrl"
+Write-Host "The first build usually takes 1-2 minutes."
