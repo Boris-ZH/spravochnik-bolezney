@@ -66,6 +66,23 @@ node tools/capture-preview.mjs
 Скрипты с headless Edge запускаются только при доступе к IPC браузера; в обычных условиях
 вёрстка проверяется через `audit_static.py` и `smoke-js.mjs`.
 
+## Публикация на GitHub Pages
+
+Сайт опубликован: <https://boris-zh.github.io/spravochnik-bolezney/>
+
+Источник — ветка `main` этого репозитория (GitHub Pages, «Deploy from a branch», папка `/`).
+После пуша в `main` Pages пересобирает сайт автоматически за 1–2 минуты. Файл `.nojekyll`
+отключает обработку Jekyll, чтобы все файлы отдавались как есть.
+
+Повторная публикация из локальной копии:
+
+```powershell
+$env:GH_TOKEN = "<fine-grained PAT: Contents — Read and write>"
+.\tools\deploy-pages.ps1 -Owner Boris-ZH -Repo spravochnik-bolezney
+```
+
+Скрипт пушит ветку и печатает адрес сайта; токен не сохраняется в конфиг git.
+
 ## Примечания
 
 - Контакты и ссылка `PaMaTiMiLiS.com` — тестовые; ссылка пока нерабочая.
